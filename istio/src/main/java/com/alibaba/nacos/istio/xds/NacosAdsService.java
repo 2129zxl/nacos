@@ -40,7 +40,7 @@ import static com.alibaba.nacos.istio.api.ApiConstants.SERVICE_ENTRY_PROTO_PACKA
  * @author special.fy
  */
 @Service
-public class NacosXdsService extends AggregatedDiscoveryServiceGrpc.AggregatedDiscoveryServiceImplBase {
+public class NacosAdsService extends AggregatedDiscoveryServiceGrpc.AggregatedDiscoveryServiceImplBase {
 
     private final Map<String, AbstractConnection<DiscoveryResponse>> connections = new ConcurrentHashMap<>(16);
 
@@ -79,13 +79,13 @@ public class NacosXdsService extends AggregatedDiscoveryServiceGrpc.AggregatedDi
 
             @Override
             public void onError(Throwable throwable) {
-                Loggers.MAIN.error("xds: {} stream error.", newConnection.getConnectionId(), throwable);
+                Loggers.MAIN.error("ads: {} stream error.", newConnection.getConnectionId(), throwable);
                 clear();
             }
 
             @Override
             public void onCompleted() {
-                Loggers.MAIN.info("xds: {} stream close.", newConnection.getConnectionId());
+                Loggers.MAIN.info("ads: {} stream close.", newConnection.getConnectionId());
                 responseObserver.onCompleted();
                 clear();
             }
@@ -174,6 +174,7 @@ public class NacosXdsService extends AggregatedDiscoveryServiceGrpc.AggregatedDi
                 DiscoveryResponse serviceEntryResponse = buildDiscoveryResponse(SERVICE_ENTRY_PROTO_PACKAGE, resourceSnapshot);
                 // TODO CDS, EDS
 
+
                 for (AbstractConnection<DiscoveryResponse> connection : connections.values()) {
                     // Service Entry via MCP
                     WatchedStatus watchedStatus = connection.getWatchedStatusByType(SERVICE_ENTRY_PROTO_PACKAGE);
@@ -183,9 +184,7 @@ public class NacosXdsService extends AggregatedDiscoveryServiceGrpc.AggregatedDi
                     // TODO CDS, EDS
                 }
                 break;
-            case Endpoint:
-                Loggers.MAIN.warn("Currently, endpoint event is not supported.");
-                break;
+
             default:
                 Loggers.MAIN.warn("Invalid event {}, ignore it.", event.getType());
         }
@@ -203,4 +202,37 @@ public class NacosXdsService extends AggregatedDiscoveryServiceGrpc.AggregatedDi
                 .setVersionInfo(resourceSnapshot.getVersion())
                 .setNonce(nonce).build();
     }
+
+    /**
+     * added by zxl
+     */
+    private DiscoveryResponse buildEDSResponse(String type, ResourceSnapshot resourceSnapshot) {
+        @SuppressWarnings("unchecked")
+        ApiGenerator<Any> serviceEntryGenerator = (ApiGenerator<Any>) apiGeneratorFactory.getApiGenerator(type);
+        List<Any> rawResources = serviceEntryGenerator.generate(resourceSnapshot);
+
+        String nonce = NonceGenerator.generateNonce();
+        return DiscoveryResponse.newBuilder()
+                .setTypeUrl(type)
+                .addAllResources(rawResources)
+                .setVersionInfo(resourceSnapshot.getVersion())
+                .setNonce(nonce).build();
+    }
+
+    /**
+     * added by zxl
+     */
+    private DiscoveryResponse buildCDSResponse(String type, ResourceSnapshot resourceSnapshot) {
+        @SuppressWarnings("unchecked")
+        ApiGenerator<Any> serviceEntryGenerator = (ApiGenerator<Any>) apiGeneratorFactory.getApiGenerator(type);
+        List<Any> rawResources = serviceEntryGenerator.generate(resourceSnapshot);
+
+        String nonce = NonceGenerator.generateNonce();
+        return DiscoveryResponse.newBuilder()
+                .setTypeUrl(type)
+                .addAllResources(rawResources)
+                .setVersionInfo(resourceSnapshot.getVersion())
+                .setNonce(nonce).build();
+    }
+
 }

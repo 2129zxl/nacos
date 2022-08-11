@@ -19,7 +19,7 @@ package com.alibaba.nacos.istio.common;
 import com.alibaba.nacos.istio.mcp.NacosMcpService;
 import com.alibaba.nacos.istio.misc.Loggers;
 import com.alibaba.nacos.istio.util.IstioExecutor;
-import com.alibaba.nacos.istio.xds.NacosXdsService;
+import com.alibaba.nacos.istio.xds.NacosAdsService;
 import com.alibaba.nacos.sys.utils.ApplicationUtils;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.event.ContextRefreshedEvent;
@@ -44,7 +44,7 @@ public class EventProcessor implements ApplicationListener<ContextRefreshedEvent
 
     private NacosMcpService nacosMcpService;
 
-    private NacosXdsService nacosXdsService;
+    private NacosAdsService nacosADSService;
 
     private NacosResourceManager resourceManager;
 
@@ -117,7 +117,7 @@ public class EventProcessor implements ApplicationListener<ContextRefreshedEvent
     }
 
     private boolean hasClientConnection() {
-        return nacosMcpService.hasClientConnection() || nacosXdsService.hasClientConnection();
+        return nacosMcpService.hasClientConnection() || nacosADSService.hasClientConnection();
     }
 
     private boolean needNewTask(boolean hasNewEvent, Future<Void> task) {
@@ -135,7 +135,7 @@ public class EventProcessor implements ApplicationListener<ContextRefreshedEvent
         @Override
         public Void call() throws Exception {
             ResourceSnapshot snapshot = resourceManager.createResourceSnapshot();
-            nacosXdsService.handleEvent(snapshot, event);
+            nacosADSService.handleEvent(snapshot, event);
             nacosMcpService.handleEvent(snapshot, event);
             return null;
         }
@@ -145,12 +145,12 @@ public class EventProcessor implements ApplicationListener<ContextRefreshedEvent
         if (null == resourceManager) {
             resourceManager = ApplicationUtils.getBean(NacosResourceManager.class);
         }
-        if (null == nacosXdsService) {
-            nacosXdsService = ApplicationUtils.getBean(NacosXdsService.class);
+        if (null == nacosADSService) {
+            nacosADSService = ApplicationUtils.getBean(NacosAdsService.class);
         }
         if (null == nacosMcpService) {
             nacosMcpService = ApplicationUtils.getBean(NacosMcpService.class);
         }
-        return Objects.nonNull(resourceManager) && Objects.nonNull(nacosMcpService) && Objects.nonNull(nacosXdsService);
+        return Objects.nonNull(resourceManager) && Objects.nonNull(nacosMcpService) && Objects.nonNull(nacosADSService);
     }
 }

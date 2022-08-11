@@ -16,24 +16,24 @@
 
 package com.alibaba.nacos.istio.common;
 
+import com.alibaba.nacos.istio.misc.IstioConfig;
+import com.alibaba.nacos.istio.model.IstioContext;
 import com.alibaba.nacos.istio.model.IstioService;
-import com.alibaba.nacos.istio.model.ServiceEntryWrapper;
-import com.alibaba.nacos.istio.util.IstioCrdUtil;
 
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
-import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
-/**
+/**.
  * @author special.fy
  */
 public class ResourceSnapshot {
     private static AtomicLong versionSuffix = new AtomicLong(0);
 
-    private final List<ServiceEntryWrapper> serviceEntries;
+    private final IstioContext istioContext;
+
+    private IstioConfig istioConfig;
 
     private boolean isCompleted;
 
@@ -41,15 +41,20 @@ public class ResourceSnapshot {
 
     public ResourceSnapshot() {
         isCompleted = false;
-        serviceEntries = new ArrayList<>();
+        istioContext = new IstioContext(new ConcurrentHashMap<String, IstioService>(16));
     }
 
+    /**
+     * description:initResourceSnapshot.
+     * @param: [manager]
+     * @return: void
+     */
     public synchronized void initResourceSnapshot(NacosResourceManager manager) {
         if (isCompleted) {
             return;
         }
 
-        initServiceEntry(manager);
+        initIstioContext(manager);
 
         generateVersion();
 
@@ -61,19 +66,16 @@ public class ResourceSnapshot {
         version = time + "/" + versionSuffix.getAndIncrement();
     }
 
-    private void initServiceEntry(NacosResourceManager manager) {
-       Map<String, IstioService> serviceInfoMap = manager.services();
-       for (String serviceName : serviceInfoMap.keySet()) {
-           ServiceEntryWrapper serviceEntryWrapper = IstioCrdUtil.buildServiceEntry(serviceName, manager.getIstioConfig().getDomainSuffix(), serviceInfoMap.get(serviceName));
-           if (serviceEntryWrapper != null) {
-               serviceEntries.add(serviceEntryWrapper);
-           }
-       }
-
+    private void initIstioContext(NacosResourceManager manager) {
+        istioContext.setIstioServiceMap(manager.services());
     }
 
-    public List<ServiceEntryWrapper> getServiceEntries() {
-        return serviceEntries;
+    public IstioContext getIstioContext() {
+        return istioContext;
+    }
+
+    public IstioConfig getIstioConfig() {
+        return istioConfig;
     }
 
     public boolean isCompleted() {

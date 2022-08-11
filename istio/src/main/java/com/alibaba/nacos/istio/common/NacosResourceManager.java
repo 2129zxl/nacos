@@ -42,11 +42,6 @@ public class NacosResourceManager {
         resourceSnapshot = new ResourceSnapshot();
     }
 
-    public void start() {
-        IstioExecutor.registerNacosResourceWatcher(serviceInfoResourceWatcher, istioConfig.getMcpPushInterval() * 2L,
-                istioConfig.getMcpPushInterval());
-    }
-
     public Map<String, IstioService> services() {
         return serviceInfoResourceWatcher.snapshot();
     }

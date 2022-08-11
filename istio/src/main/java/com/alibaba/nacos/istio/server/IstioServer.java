@@ -20,7 +20,9 @@ import com.alibaba.nacos.istio.common.NacosResourceManager;
 import com.alibaba.nacos.istio.mcp.NacosMcpService;
 import com.alibaba.nacos.istio.misc.IstioConfig;
 import com.alibaba.nacos.istio.misc.Loggers;
-import com.alibaba.nacos.istio.xds.NacosXdsService;
+import com.alibaba.nacos.istio.xds.NacosAdsService;
+import com.alibaba.nacos.istio.xds.NacosCdsService;
+import com.alibaba.nacos.istio.xds.NacosEdsService;
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
 import io.grpc.ServerInterceptors;
@@ -48,7 +50,13 @@ public class IstioServer {
     private NacosMcpService nacosMcpService;
 
     @Autowired
-    private NacosXdsService nacosXdsService;
+    private NacosAdsService nacosAdsService;
+
+    @Autowired
+    private NacosCdsService nacosCDSService;
+
+    @Autowired
+    private NacosEdsService nacosEDSService;
 
     @Autowired
     private NacosResourceManager nacosResourceManager;
@@ -65,12 +73,15 @@ public class IstioServer {
             Loggers.MAIN.info("The Nacos Istio server is disabled.");
             return;
         }
-        nacosResourceManager.start();
 
         Loggers.MAIN.info("Nacos Istio server, starting Nacos Istio server...");
 
-        server = ServerBuilder.forPort(istioConfig.getServerPort()).addService(ServerInterceptors.intercept(nacosMcpService, serverInterceptor))
-                .addService(ServerInterceptors.intercept(nacosXdsService, serverInterceptor)).build();
+        server = ServerBuilder.forPort(istioConfig.getServerPort())
+                .addService(ServerInterceptors.intercept(nacosMcpService, serverInterceptor))
+                .addService(ServerInterceptors.intercept(nacosAdsService, serverInterceptor))
+                .addService(nacosCDSService)
+                .addService(nacosEDSService)
+                .build();
         server.start();
 
         Runtime.getRuntime().addShutdownHook(new Thread() {
